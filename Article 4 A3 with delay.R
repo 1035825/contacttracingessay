@@ -1,0 +1,87 @@
+t <- 0.5 #fixed tlat
+
+finaldelay=function(R,d){ #function of R_0 and delta to find the CTE p_c*
+  long <- function(p){ #function of p to find new reproduction number
+    P_0 = function(x){ #P_x^(0)
+      prod = rep.int(0,x+1)
+      for(i in 1:(x+1)){
+        prod[i] <- i+p*R #vector to be multiplied together 
+      }
+      prodfinal <- 1
+      for(i in 1:(x+1)){
+        prodfinal <- prodfinal*prod[i] #denominator of P_x^(0)
+      }
+      ((p*R)^x)*(x+1)/prodfinal #P_x^(0) as a function of x
+    }
+    P_1 = function(x){
+      prod = rep.int(0,x+1)
+      for(i in 1:(x+1)){
+        prod[i] <- 1+i+p*R
+      }
+      prodfinal <- 1
+      for(i in 1:(x+1)){
+        prodfinal <- prodfinal*prod[i]
+      }
+      ((p*R)^x)*(x+2)/prodfinal #same as above for P_x^(1)
+    }
+    vect <- rep.int(0,100) #assume negligible for x>100 (very unlikely to produce 100 infectees)
+    for(x in 1:100){
+      vect[x] <- (x+p*R*(1-exp(-d))*x/(x+1))*P_0(x) #vector to calculate k_10
+    }
+    k_10 <- exp(-t)*sum(vect) #k_10 as defined in section 8.2
+    k_00 <- ((1-p)/p)*k_10 #k_00 as always defined
+    VECT <- rep.int(0,100) #again assume negligible for x>100
+    for(x in 1:100){
+      VECT[x] <- (x+p*R*(1-exp(-d))*(x+1)/(x+2))*P_1(x) #vector to calculate k_11
+    }
+    k_11 <- 0
+    if(d<=t){
+      k_11 <- exp(-2*t)*(exp(d)-1)*0.5*R*p*(1-exp(-d))+exp(-2*t)*sum(VECT) 
+    } #k_11 for delta<=tlat
+    if(d>t){
+      k_11 <- exp(-2*t)*(exp(t)-1)*R*p*(1-0.5*exp(-d)*(exp(t)-exp(-t))/(1-exp(-t)))+exp(-2*t)*sum(VECT)
+    } #k_11 for delta>tlat
+    k_01 <- ((1-p)/p)*k_11 #k_01 as always defined
+    value <- function(r){
+      (k_00 - r)*(k_11 - r) - k_01*k_10 #characteristic equation 
+    }
+    RR <- uniroot(value,c(0.01,10)) 
+    sol <- unname(unlist(RR[1])) #new reproduction number R
+    return(sol)
+  }
+  Rvect <- rep.int(0,1000)
+  for(i in 1:1000){
+    Rvect[i] <- long(i/1000) #R for each p=0.001,0.002,...,1.000
+  }
+  p_c <- (which(abs(Rvect - 1) == min(abs(Rvect - 1))))/1000 #p_c which produces R closest to 1 
+  return(p_c)
+}
+
+x <- seq(0.01,1,by=0.01)
+
+FINALdelay2 <- rep.int(0,100)
+for(i in 1:100){
+  FINALdelay2[i] <- finaldelay(2,i/100) #results for R_0 = 2, 0<delta<1
+}
+
+FINALdelay25 <- rep.int(0,100)
+for(i in 1:100){
+  FINALdelay25[i] <- finaldelay(2.5,i/100) #results for R_0 = 2.5, 0<delta<1
+}
+
+FINALdelay3 <- rep.int(0,100)
+for(i in 1:100){
+  FINALdelay3[i] <- finaldelay(3,i/100) #results for R_0 = 3, 0<delta<1
+}
+FINALdelay3[FINALdelay3 == 1] <- NA #removing results where the true p_c* > 1
+
+pdf("delaymodel.pdf",height=6,width=6)
+plot(x,FINALdelay2, col="black", type="l", ylim=c(0,1),xlab="Tracing delay", ylab="Critical tracing efficiency")
+par(new=TRUE)
+plot(x,FINALdelay25, col="blue", type="l", ylim=c(0,1),xlab="Tracing delay", ylab="Critical tracing efficiency")
+par(new=TRUE)
+plot(x,FINALdelay3, col="red", type="l", ylim=c(0,1),xlab="Tracing delay", ylab="Critical tracing efficiency")
+abline(h=(1-1/2.5),lty=2, col="blue") #"lower bound" for R_0 = 2.5
+legend(0.01,0.95,legend=c("R0 = 2.0", "R0 = 2.5", "R0 = 3.0"),col=c("black","blue","red"), lty=1:1:1, cex=0.8)
+dev.off()
+
