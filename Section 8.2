@@ -28,7 +28,7 @@ finaldelay=function(R,d){ #function of R_0 and delta to find the CTE p_c*
     for(x in 1:100){
       vect[x] <- (x+p*R*(1-exp(-d))*x/(x+1))*P_0(x) #vector to calculate k_10
     }
-    k_10 <- exp(-t)*sum(vect) #k_10 as defined in section 8.2
+    k_10 <- exp(-t)*sum(vect) #k_10 as defined in section 8.1
     k_00 <- ((1-p)/p)*k_10 #k_00 as always defined
     VECT <- rep.int(0,100) #again assume negligible for x>100
     for(x in 1:100){
